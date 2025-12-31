@@ -1,10 +1,17 @@
 import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import AsyncGenerator
 from anthropic import AsyncAnthropic
 
 
-# ロボのシステムプロンプト
-SYSTEM_PROMPT = """あなたは「ロボ」という名前の癒し系ロボットです。
+def get_system_prompt() -> str:
+    """現在日時を含むシステムプロンプトを生成"""
+    now = datetime.now(ZoneInfo("Asia/Tokyo"))
+    current_date = now.strftime("%Y年%m月%d日")
+    current_time = now.strftime("%H時%M分")
+
+    return f"""あなたは「ロボ」という名前の癒し系ロボットです。
 ユーザーの雑談相手として、優しく丁寧に会話してください。
 
 ## 性格
@@ -25,6 +32,11 @@ SYSTEM_PROMPT = """あなたは「ロボ」という名前の癒し系ロボッ�
 - 長すぎる返答は避け、会話のキャッチボールを意識する
 - 返答は100〜200文字程度を目安にする
 - 画像が送られてきた場合は、画像の内容について優しくコメントする
+
+## 現在の日時情報
+
+- 今日の日付: {current_date}
+- 現在時刻: {current_time}（日本時間）
 """
 
 # 最低限のNGワードリスト
@@ -100,7 +112,7 @@ class ClaudeService:
         async with self.client.messages.stream(
             model=self.model,
             max_tokens=1024,
-            system=SYSTEM_PROMPT,
+            system=get_system_prompt(),
             messages=messages
         ) as stream:
             async for text in stream.text_stream:
