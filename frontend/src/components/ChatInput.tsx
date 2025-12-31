@@ -2,15 +2,18 @@
 
 import { useState, useEffect, FormEvent, KeyboardEvent } from 'react'
 import { VoiceInputButton } from './VoiceInputButton'
+import { ImageUploadButton } from './ImageUploadButton'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
+import { ImageData } from '@/types/chat'
 
 interface ChatInputProps {
-  onSend: (message: string) => void
+  onSend: (message: string, image?: ImageData) => void
   isLoading: boolean
 }
 
 export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   const [input, setInput] = useState('')
+  const [selectedImage, setSelectedImage] = useState<ImageData | null>(null)
   const {
     transcript,
     isListening,
@@ -31,8 +34,9 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (input.trim() && !isLoading) {
-      onSend(input)
+      onSend(input, selectedImage || undefined)
       setInput('')
+      setSelectedImage(null)
     }
   }
 
@@ -58,11 +62,45 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
 
   return (
     <form onSubmit={handleSubmit} className="border-t bg-white p-4">
+      {/* 画像プレビュー */}
+      {selectedImage && (
+        <div className="mb-2 flex items-center gap-2">
+          <div className="relative inline-block">
+            <img
+              src={`data:${selectedImage.media_type};base64,${selectedImage.data}`}
+              alt="添付画像"
+              className="h-16 w-16 object-cover rounded-lg border border-gray-200"
+            />
+            <button
+              type="button"
+              onClick={() => setSelectedImage(null)}
+              className="absolute -top-2 -right-2 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className="w-3 h-3"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <span className="text-sm text-gray-500">画像が添付されています</span>
+        </div>
+      )}
       <div className="flex items-end gap-2">
         <VoiceInputButton
           isListening={isListening}
           isSupported={isSupported}
           onClick={handleVoiceClick}
+        />
+        <ImageUploadButton
+          onImageSelect={setSelectedImage}
+          selectedImage={selectedImage}
+          isDisabled={isLoading}
         />
         <textarea
           value={input}

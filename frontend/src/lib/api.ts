@@ -1,11 +1,12 @@
-import { ChatMessage } from '@/types/chat'
+import { ChatMessage, ImageData } from '@/types/chat'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export async function sendMessage(
   message: string,
   history: ChatMessage[],
-  onChunk: (chunk: string) => void
+  onChunk: (chunk: string) => void,
+  image?: ImageData
 ): Promise<void> {
   const response = await fetch(`${API_URL}/api/chat`, {
     method: 'POST',
@@ -14,7 +15,8 @@ export async function sendMessage(
     },
     body: JSON.stringify({
       message,
-      history: history.map(({ role, content }) => ({ role, content })),
+      image,
+      history: history.map(({ role, content, image }) => ({ role, content, image })),
     }),
   })
 
