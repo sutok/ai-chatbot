@@ -24,6 +24,7 @@ SYSTEM_PROMPT = """あなたは「ロボ」という名前の癒し系ロボッ�
 - ネガティブな話題には共感しつつ、前向きな言葉をかける
 - 長すぎる返答は避け、会話のキャッチボールを意識する
 - 返答は100〜200文字程度を目安にする
+- 画像が送られてきた場合は、画像の内容について優しくコメントする
 """
 
 # 最低限のNGワードリスト
@@ -37,7 +38,7 @@ class ClaudeService:
 
     def __init__(self):
         self.client = AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        self.model = "model="claude-sonnet-4-5-20250929"
+        self.model = "claude-sonnet-4-20250514"
 
     def filter_message(self, message: str) -> str:
         """NGワードフィルター"""
@@ -46,25 +47,53 @@ class ClaudeService:
             filtered = filtered.replace(word, "***")
         return filtered
 
+    def _build_content(self, message: str, image: dict | None = None) -> list | str:
+        """メッセージコンテンツを構築（マルチモーダル対応）"""
+        if image is None:
+            return message
+
+        # 画像付きの場合はコンテンツ配列を返す
+        content = [
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": image["media_type"],
+                    "data": image["data"]
+                }
+            },
+            {
+                "type": "text",
+                "text": message
+            }
+        ]
+        return content
+
     async def chat_stream(
         self,
         message: str,
-        history: list[dict]
+        history: list[dict],
+        image: dict | None = None
     ) -> AsyncGenerator[str, None]:
-        """ストリーミングチャット"""
+        """ストリーミングチャット（マルチモーダル対応）"""
         # NGワードフィルター
         filtered_message = self.filter_message(message)
 
         # 会話履歴を構築
         messages = []
         for msg in history:
+            msg_image = msg.get("image")
+            content = self._build_content(msg["content"], msg_image)
             messages.append({
                 "role": msg["role"],
-                "content": msg["content"]
+                "content": content
             })
+
+        # 現在のメッセージを追加
+        current_content = self._build_content(filtered_message, image)
         messages.append({
             "role": "user",
-            "content": filtered_message
+            "content": current_content
         })
 
         # ストリーミングでClaude APIを呼び出し

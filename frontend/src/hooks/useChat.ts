@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { ChatMessage } from '@/types/chat'
+import { ChatMessage, ImageData } from '@/types/chat'
 import { sendMessage } from '@/lib/api'
 import { useLocalStorage } from './useLocalStorage'
 
@@ -9,7 +9,7 @@ interface UseChatReturn {
   messages: ChatMessage[]
   isLoading: boolean
   error: string | null
-  sendChatMessage: (message: string) => Promise<void>
+  sendChatMessage: (message: string, image?: ImageData) => Promise<void>
   clearMessages: () => void
   isLoaded: boolean
 }
@@ -24,7 +24,7 @@ export function useChat(): UseChatReturn {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const sendChatMessage = useCallback(async (message: string) => {
+  const sendChatMessage = useCallback(async (message: string, image?: ImageData) => {
     if (!message.trim() || isLoading) return
 
     setError(null)
@@ -35,6 +35,7 @@ export function useChat(): UseChatReturn {
       id: generateId(),
       role: 'user',
       content: message.trim(),
+      image,
     }
 
     const updatedMessages = [...messages, userMessage]
@@ -55,7 +56,8 @@ export function useChat(): UseChatReturn {
         (chunk) => {
           assistantMessage.content += chunk
           setMessages([...updatedMessages, { ...assistantMessage }])
-        }
+        },
+        image
       )
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'エラーが発生しました'

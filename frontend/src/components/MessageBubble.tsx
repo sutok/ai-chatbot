@@ -20,6 +20,16 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             : 'bg-gray-100 text-gray-800 rounded-bl-md'
         }`}
       >
+        {/* 添付画像を表示 */}
+        {message.image && (
+          <div className="mb-2">
+            <img
+              src={`data:${message.image.media_type};base64,${message.image.data}`}
+              alt="添付画像"
+              className="max-w-full max-h-64 rounded-lg object-contain"
+            />
+          </div>
+        )}
         <p className="whitespace-pre-wrap break-words">{message.content}</p>
       </div>
     </div>
